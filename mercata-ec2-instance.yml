@@ -123,6 +123,9 @@ Resources:
           #!/bin/bash
           yum install -y git
           git clone https://github.com/andyakovlev/mercata-aws-node /tmp/mercata-aws-node
+          sudo bash /tmp/mercata-aws-node/volume_setup_script.sh install
+          sudo bash /tmp/mercata-aws-node/volume_setup_script.sh mount        
+
 
   EIP:
     Type: AWS::EC2::EIP
