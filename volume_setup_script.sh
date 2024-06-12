@@ -17,7 +17,7 @@ check_root() {
 
 install_software() {
     sudo yum update -y
-    sudo yum install -y docker git htop jq ncdu-1.10-1.3.amzn1.x86_64.rpm
+    sudo yum install -y docker git htop jq
 
     # Autostart on reboot
     sudo systemctl enable docker
