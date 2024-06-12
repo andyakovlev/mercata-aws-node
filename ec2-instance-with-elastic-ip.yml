@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create an EC2 instance with specified configurations, security group, and Elastic IP.
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      InstanceType: m6a.xlarge
+      ImageId: ami-0c55b159cbfafe1f0 # Amazon Linux 2023 AMI ID (example, update as needed)
+      KeyName: blockapps-generated-key
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds: 
+        - !Ref SecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+        - DeviceName: /dev/sdf
+          Ebs:
+            VolumeSize: 80
+            VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: stratomercata-node1
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: strato-ports
+      GroupDescription: Security group for stratomercata-node1
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIpv6: ::/0
+        - IpProtocol: tcp
+          FromPort: 30303
+          ToPort: 30303
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: 30303
+          ToPort: 30303
+          CidrIp: 0.0.0.0/0
+
+  EIP:
+    Type: AWS::EC2::EIP
+
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties: 
+      InstanceId: !Ref EC2Instance
+      AllocationId: !GetAtt EIP.AllocationId
+
+Parameters:
+  VPCId:
+    Type: String
+    Description: Enter the VPC ID to use
+  SubnetId:
+    Type: String
+    Description: Enter the Subnet ID to use
