@@ -2,34 +2,80 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudFormation template to create an EC2 instance with specified configurations, security group, and Elastic IP.
 
 Resources:
-  EC2Instance:
-    Type: AWS::EC2::Instance
-    Properties: 
-      InstanceType: m6a.xlarge
-      ImageId: ami-0c55b159cbfafe1f0 # Amazon Linux 2023 AMI ID (example, update as needed)
-      KeyName: blockapps-generated-key
-      SubnetId: !Ref SubnetId
-      SecurityGroupIds: 
-        - !Ref SecurityGroup
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: 8
-            VolumeType: gp3
-        - DeviceName: /dev/sdf
-          Ebs:
-            VolumeSize: 80
-            VolumeType: gp3
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: stratomercata-node1
+          Value: DefaultVPC
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: DefaultIGW
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: DefaultSubnet1
+
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: DefaultSubnet2
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  Route:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet2
+      RouteTableId: !Ref RouteTable
 
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties: 
-      GroupName: strato-ports
+      VpcId: !Ref VPC
       GroupDescription: Security group for stratomercata-node1
-      VpcId: !Ref VPCId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -52,8 +98,38 @@ Resources:
           ToPort: 30303
           CidrIp: 0.0.0.0/0
 
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      InstanceType: m6a.xlarge
+      ImageId: ami-08a0d1e16fc3f61ea
+      SubnetId: !Ref Subnet1
+      SecurityGroupIds: 
+        - !Ref SecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+        - DeviceName: /dev/sdf
+          Ebs:
+            VolumeSize: 80
+            VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: stratomercata-node1
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum install -y git
+          git clone https://github.com/andyakovlev/starto-aws-node /tmp/starto-aws-node
+          bash /tmp/starto-aws-node/volume_setup_script.sh install
+          bash /tmp/starto-aws-node/volume_setup_script.sh mount
+
   EIP:
     Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
 
   EIPAssociation:
     Type: AWS::EC2::EIPAssociation
@@ -61,10 +137,48 @@ Resources:
       InstanceId: !Ref EC2Instance
       AllocationId: !GetAtt EIP.AllocationId
 
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroups:
+        - !Ref SecurityGroup
+      Scheme: internet-facing
+      Type: application
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup
+      LoadBalancerArn: !Ref ALB
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref MyCertificate
+
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VPC
+      Port: 80
+      Protocol: HTTP
+
+  MyCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+
+Outputs:
+  ALBDNSName:
+    Description: "DNS Name of the ALB"
+    Value: !GetAtt ALB.DNSName
+
 Parameters:
-  VPCId:
+  DomainName:
     Type: String
-    Description: Enter the VPC ID to use
-  SubnetId:
-    Type: String
-    Description: Enter the Subnet ID to use
+    Description: "The domain name for which the SSL certificate will be issued."
