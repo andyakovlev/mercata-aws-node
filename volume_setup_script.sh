@@ -24,9 +24,8 @@ install_software() {
     sudo systemctl start docker
 
     # Docker-compose
-    DOCKER_CONFIG=/usr/local/lib/docker
-    sudo mkdir -p $DOCKER_CONFIG/cli-plugins
-    sudo curl -SL https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/docker-compose
+    sudo mkdir -p /usr/local/lib/docker/cli-plugins/
+    sudo curl -SL https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
     sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
     sudo wget http://packages.eu-central-1.amazonaws.com/2018.03/main/c31535f74c6e/x86_64/Packages/ncdu-1.10-1.3.amzn1.x86_64.rpm
     sudo yum install -y ncdu-1.10-1.3.amzn1.x86_64.rpm
