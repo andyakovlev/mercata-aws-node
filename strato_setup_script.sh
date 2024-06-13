@@ -1,21 +1,13 @@
 #!/bin/bash
 
-# Usage: ./setup_strato.sh DOMAIN_NAME CLIENT_ID CLIENT_SECRET [SENDGRID_API_KEY] [ADMIN_EMAIL]
+# Ask user for mandatory variables
+read -p "Enter domain name: " DOMAIN_NAME
+read -p "Enter client ID: " CLIENT_ID
+read -p "Enter client secret: " CLIENT_SECRET
 
-# Check for minimum number of arguments
-if [ "$#" -lt 3 ]; then
-  echo "Usage: $0 DOMAIN_NAME CLIENT_ID CLIENT_SECRET [SENDGRID_API_KEY] [ADMIN_EMAIL]"
-  exit 1
-fi
-
-# Assign mandatory arguments to variables
-DOMAIN_NAME=$1
-CLIENT_ID=$2
-CLIENT_SECRET=$3
-
-# Assign optional arguments to variables, use default empty values if not provided
-SENDGRID_API_KEY=${4:-''}
-ADMIN_EMAIL=${5:-''}
+# Ask user for optional variables
+read -p "Enter SendGrid API key (leave blank if not applicable): " SENDGRID_API_KEY
+read -p "Enter admin email (leave blank if not applicable): " ADMIN_EMAIL
 
 # Create a reference file
 touch ~/_NOTE_all-data-is-in-root-datadrive-folder
