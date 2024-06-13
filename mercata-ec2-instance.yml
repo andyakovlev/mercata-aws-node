@@ -1,23 +1,17 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: CloudFormation template to create an EC2 instance with specified configurations, security group, and Elastic IP.
+Description: CloudFormation template to create an EC2 instance for Strato Mercata Node.
 
 Resources:
+  # Network setup
   VPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
-      Tags:
-        - Key: Name
-          Value: DefaultVPC
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: DefaultIGW
 
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -31,10 +25,6 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [0, !GetAZs '']
-      Tags:
-        - Key: Name
-          Value: DefaultSubnet1
 
   Subnet2:
     Type: AWS::EC2::Subnet
@@ -42,11 +32,8 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: 10.0.2.0/24
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [1, !GetAZs '']
-      Tags:
-        - Key: Name
-          Value: DefaultSubnet2
 
+  # Routing setup
   RouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -71,16 +58,13 @@ Resources:
       SubnetId: !Ref Subnet2
       RouteTableId: !Ref RouteTable
 
-  SecurityGroup:
+  # Security configuration
+  SecurityGroupALB:
     Type: AWS::EC2::SecurityGroup
     Properties: 
       VpcId: !Ref VPC
-      GroupDescription: Security group for stratomercata-node1
+      GroupDescription: Security group for ALB
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
@@ -98,6 +82,34 @@ Resources:
           ToPort: 30303
           CidrIp: 0.0.0.0/0
 
+  SecurityGroupEC2:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      VpcId: !Ref VPC
+      GroupDescription: Security group for EC2
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref SecurityGroupALB
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref SecurityGroupALB
+        - IpProtocol: tcp
+          FromPort: 30303
+          ToPort: 30303
+          SourceSecurityGroupId: !Ref SecurityGroupALB
+        - IpProtocol: udp
+          FromPort: 30303
+          ToPort: 30303
+          SourceSecurityGroupId: !Ref SecurityGroupALB
+
+  # EC2 instance setup
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties: 
@@ -105,7 +117,7 @@ Resources:
       ImageId: ami-08a0d1e16fc3f61ea
       SubnetId: !Ref Subnet1
       SecurityGroupIds: 
-        - !Ref SecurityGroup
+        - !Ref SecurityGroupEC2
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
@@ -122,22 +134,10 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           yum install -y git
-          git clone https://github.com/andyakovlev/mercata-aws-node /tmp/mercata-aws-node
-          sudo bash /tmp/mercata-aws-node/volume_setup_script.sh install
-          sudo bash /tmp/mercata-aws-node/volume_setup_script.sh mount        
+          sudo rm -rf /tmp/mercata-aws-node
+          git clone https://github.com/andyakovlev/mercata-aws-node /tmp/mercata-aws-node      
 
-
-  EIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-
-  EIPAssociation:
-    Type: AWS::EC2::EIPAssociation
-    Properties: 
-      InstanceId: !Ref EC2Instance
-      AllocationId: !GetAtt EIP.AllocationId
-
+  # Load balancer setup
   ALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -145,7 +145,7 @@ Resources:
         - !Ref Subnet1
         - !Ref Subnet2
       SecurityGroups:
-        - !Ref SecurityGroup
+        - !Ref SecurityGroupALB
       Scheme: internet-facing
       Type: application
 
@@ -167,12 +167,58 @@ Resources:
       VpcId: !Ref VPC
       Port: 80
       Protocol: HTTP
+      TargetType: instance
+      Targets:
+        - Id: !Ref EC2Instance
 
+  ALBTargetGroup8080:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VPC
+      Port: 8080
+      Protocol: HTTP
+      TargetType: instance
+      Targets:
+        - Id: !Ref EC2Instance
+
+  ALBListenerRuleRoot:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup8080
+      Conditions:
+        - Field: path-pattern
+          Values: ["/"]
+      ListenerArn: !Ref ALBListener
+      Priority: 5 
+
+  # Create a new Hosted Zone
+  MyHostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Ref DomainName
+
+  # Certificate management
   MyCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
       DomainName: !Ref DomainName
       ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          ValidationDomain: !Ref DomainName
+
+  ALBDNSAliasRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        HostedZoneId: !GetAtt ALB.CanonicalHostedZoneID
+        DNSName: !GetAtt ALB.DNSName
+        EvaluateTargetHealth: false
 
 Outputs:
   ALBDNSName:
@@ -183,3 +229,12 @@ Parameters:
   DomainName:
     Type: String
     Description: "The domain name for which the SSL certificate will be issued."
+  HostedZoneId:
+    Type: String
+    Description: "The ID of the Hosted Zone in Route 53 that will be used for the DNS records."
+  ClientId:
+    Type: String
+    Description: "Client id."
+  ClientSecret:
+    Type: String
+    Description: "Client secret."
