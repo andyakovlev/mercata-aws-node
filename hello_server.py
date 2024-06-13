@@ -8,7 +8,7 @@ class HelloWorldHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
-        self.wfile.write("There is a Strato Mercata Node running here.".encode())
+        self.wfile.write("there be a node that maketh silver here...".encode())
 
 # Server settings
 host = '0.0.0.0'

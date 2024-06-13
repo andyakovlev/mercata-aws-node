@@ -140,6 +140,7 @@ Resources:
           git clone https://github.com/andyakovlev/mercata-aws-node /tmp/mercata-aws-node
           sudo bash /tmp/mercata-aws-node/volume_setup_script.sh install
           sudo bash /tmp/mercata-aws-node/volume_setup_script.sh mount
+          nohup sudo python3 /tmp/mercata-aws-node/hello_server.py > /var/log/hello_server.log 2>&1 &
 
   # Load balancer setup
   ALB:
