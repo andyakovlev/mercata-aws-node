@@ -42,9 +42,13 @@ def provision_certificate(domain, email):
         print(result.stderr)
 
 if __name__ == "__main__":
-    # Ask for the email and domain name
-    email = input("Enter your email address (used for urgent renewal and security notices): ")
-    domain = input("Enter the domain name for which the SSL certificate is to be provisioned: ")
+    # Ensure the script is called with the correct number of arguments
+    if len(sys.argv) != 3:
+        print("Usage: sudo python3 script.py <domain> <email>")
+        sys.exit(1)
+    
+    domain = sys.argv[1]
+    email = sys.argv[2]
     
     # Call the function to provision the certificate and copy files
     provision_certificate(domain, email)

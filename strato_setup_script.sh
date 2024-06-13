@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Ask user for mandatory variables
+read -p "Enter email name: " ADMIN_EMAIL
 read -p "Enter domain name: " DOMAIN_NAME
 read -p "Enter client ID: " CLIENT_ID
 read -p "Enter client secret: " CLIENT_SECRET
 
 # Ask user for optional variables
 read -p "Enter SendGrid API key (leave blank if not applicable): " SENDGRID_API_KEY
-read -p "Enter admin email (leave blank if not applicable): " ADMIN_EMAIL
 
 # Create a reference file
 touch ~/_NOTE_all-data-is-in-root-datadrive-folder
@@ -36,8 +36,12 @@ NODE_HOST="$DOMAIN_NAME" \
   OAUTH_CLIENT_SECRET="$CLIENT_SECRET" \
   SENDGRID_API_KEY="$SENDGRID_API_KEY" \
   ADMIN_EMAIL="$ADMIN_EMAIL" \
+  ssl=true \
   ./strato
 EOF
+
+# Set up SSL
+sudo python3 /tmp/mercata-aws-node/ssl_setup.py "$DOMAIN_NAME" "$ADMIN_EMAIL"
 
 # Make strato-run.sh executable
 sudo chmod +x strato-run.sh

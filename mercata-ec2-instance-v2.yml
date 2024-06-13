@@ -103,3 +103,4 @@ Resources:
           git clone https://github.com/andyakovlev/mercata-aws-node /tmp/mercata-aws-node
           sudo bash /tmp/mercata-aws-node/volume_setup_script.sh install
           sudo bash /tmp/mercata-aws-node/volume_setup_script.sh mount
+          sudo yum install certbot -y
