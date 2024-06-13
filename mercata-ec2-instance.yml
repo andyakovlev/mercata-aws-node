@@ -199,12 +199,6 @@ Resources:
       ListenerArn: !Ref ALBListener
       Priority: 5 
 
-  # Create a new Hosted Zone
-  MyHostedZone:
-    Type: AWS::Route53::HostedZone
-    Properties:
-      Name: !Ref DomainName
-
   # Certificate management
   MyCertificate:
     Type: AWS::CertificateManager::Certificate
