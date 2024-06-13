@@ -175,6 +175,28 @@ Resources:
       Targets:
         - Id: !Ref EC2Instance
 
+  ALBTargetGroup8080:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VPC
+      Port: 8080
+      Protocol: HTTP
+      TargetType: instance
+      Targets:
+        - Id: !Ref EC2Instance
+
+  ALBListenerRuleRoot:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup8080
+      Conditions:
+        - Field: path-pattern
+          Values: ["/"]
+      ListenerArn: !Ref ALBListener
+      Priority: 5 
+
   # Certificate management
   MyCertificate:
     Type: AWS::CertificateManager::Certificate
