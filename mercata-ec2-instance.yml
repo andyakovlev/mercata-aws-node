@@ -230,9 +230,3 @@ Parameters:
   HostedZoneId:
     Type: String
     Description: "The ID of the Hosted Zone in Route 53 that will be used for the DNS records."
-  ClientId:
-    Type: String
-    Description: "Client id."
-  ClientSecret:
-    Type: String
-    Description: "Client secret."
