@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create an EC2 instance for Strato Mercata Node.
+
+Resources:
+  # Network setup
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+
+  # Routing setup
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  Route:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref RouteTable
+
+  # Security configuration
+  SecurityGroupEC2:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      VpcId: !Ref VPC
+      GroupDescription: Security group for EC2
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 30303
+          ToPort: 30303
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: 30303
+          ToPort: 30303
+          CidrIp: 0.0.0.0/0
+
+  # EC2 instance setup
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      InstanceType: m6a.xlarge
+      ImageId: ami-08a0d1e16fc3f61ea
+      SubnetId: !Ref Subnet1
+      SecurityGroupIds: 
+        - !Ref SecurityGroupEC2
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+        - DeviceName: /dev/sdf
+          Ebs:
+            VolumeSize: 80
+            VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: stratomercata-node1
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum install -y git
+          sudo rm -rf /tmp/mercata-aws-node
+          git clone https://github.com/andyakovlev/mercata-aws-node /tmp/mercata-aws-node
+          sudo bash /tmp/mercata-aws-node/volume_setup_script.sh install
+          sudo bash /tmp/mercata-aws-node/volume_setup_script.sh mount
