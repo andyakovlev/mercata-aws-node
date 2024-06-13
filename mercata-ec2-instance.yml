@@ -208,6 +208,7 @@ Resources:
         - DomainName: !Ref DomainName
           ValidationDomain: !Ref DomainName
 
+  # DNS Update
   ALBDNSAliasRecord:
     Type: AWS::Route53::RecordSet
     Properties:
