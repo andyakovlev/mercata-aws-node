@@ -1,22 +1,13 @@
 import subprocess
 import sys
-import string
-import random
-
-def generate_random_subdomain(length=5):
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 def provision_certificate(domain, email):
-    # Generate a random subdomain
-    subdomain = generate_random_subdomain()
-    full_domain = f"{subdomain}.{domain}"
-
     # Prepare the Certbot command to obtain a certificate
     command = [
         'sudo', 'certbot', 'certonly', '--standalone',
         '--preferred-challenges', 'http',
         '--agree-tos', '--email', email,
-        '-d', domain, '-d', full_domain
+        '-d', domain
     ]
     
     # Execute the command to get the certificate
