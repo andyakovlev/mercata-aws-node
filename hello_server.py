@@ -1,3 +1,5 @@
+# Use this for simple port testing
+
 # Importing the HTTP server libraries
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -12,7 +14,7 @@ class HelloWorldHandler(BaseHTTPRequestHandler):
 
 # Server settings
 host = '0.0.0.0'
-port = 8080
+port = 80
 server_address = (host, port)
 
 # Creating and starting the server

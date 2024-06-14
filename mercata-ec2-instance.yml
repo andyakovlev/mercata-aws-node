@@ -27,14 +27,6 @@ Resources:
       AvailabilityZone: !Select [0, !GetAZs '']
       MapPublicIpOnLaunch: true
 
-  Subnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: 10.0.2.0/24
-      AvailabilityZone: !Select [1, !GetAZs '']
-      MapPublicIpOnLaunch: true
-
   # Routing setup
   RouteTable:
     Type: AWS::EC2::RouteTable
@@ -54,62 +46,38 @@ Resources:
       SubnetId: !Ref Subnet1
       RouteTableId: !Ref RouteTable
 
-  SubnetRouteTableAssociation2:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref Subnet2
-      RouteTableId: !Ref RouteTable
-
   # Security configuration
-  SecurityGroupALB:
-    Type: AWS::EC2::SecurityGroup
-    Properties: 
-      VpcId: !Ref VPC
-      GroupDescription: Security group for ALB
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIpv6: ::/0
-        - IpProtocol: tcp
-          FromPort: 30303
-          ToPort: 30303
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: udp
-          FromPort: 30303
-          ToPort: 30303
-          CidrIp: 0.0.0.0/0
-
   SecurityGroupEC2:
     Type: AWS::EC2::SecurityGroup
     Properties: 
       VpcId: !Ref VPC
-      GroupDescription: Security group for EC2
+      GroupDescription: "Security group for EC2 instances"
       SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          SourceSecurityGroupId: !Ref SecurityGroupALB
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: 8080
-          ToPort: 8080
-          SourceSecurityGroupId: !Ref SecurityGroupALB
+          FromPort: 443
+          ToPort: 443
+          CidrIpv6: "::/0"
         - IpProtocol: tcp
           FromPort: 30303
           ToPort: 30303
-          SourceSecurityGroupId: !Ref SecurityGroupALB
+          CidrIp: 0.0.0.0/0
         - IpProtocol: udp
           FromPort: 30303
           ToPort: 30303
-          SourceSecurityGroupId: !Ref SecurityGroupALB
+          CidrIp: 0.0.0.0/0
+
 
   # EC2 instance setup
   EC2Instance:
@@ -140,95 +108,4 @@ Resources:
           git clone https://github.com/andyakovlev/mercata-aws-node /tmp/mercata-aws-node
           sudo bash /tmp/mercata-aws-node/volume_setup_script.sh install
           sudo bash /tmp/mercata-aws-node/volume_setup_script.sh mount
-          nohup sudo python3 /tmp/mercata-aws-node/hello_server.py > /var/log/hello_server.log 2>&1 &
-
-  # Load balancer setup
-  ALB:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Subnets:
-        - !Ref Subnet1
-        - !Ref Subnet2
-      SecurityGroups:
-        - !Ref SecurityGroupALB
-      Scheme: internet-facing
-      Type: application
-
-  ALBListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref ALBTargetGroup
-      LoadBalancerArn: !Ref ALB
-      Port: 443
-      Protocol: HTTPS
-      Certificates:
-        - CertificateArn: !Ref MyCertificate
-
-  ALBTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      VpcId: !Ref VPC
-      Port: 80
-      Protocol: HTTP
-      TargetType: instance
-      Targets:
-        - Id: !Ref EC2Instance
-
-  ALBTargetGroup8080:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      VpcId: !Ref VPC
-      Port: 8080
-      Protocol: HTTP
-      TargetType: instance
-      Targets:
-        - Id: !Ref EC2Instance
-
-  ALBListenerRuleRoot:
-    Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Properties:
-      Actions:
-        - Type: forward
-          TargetGroupArn: !Ref ALBTargetGroup8080
-      Conditions:
-        - Field: path-pattern
-          Values: ["/"]
-      ListenerArn: !Ref ALBListener
-      Priority: 5 
-
-  # Certificate management
-  MyCertificate:
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      DomainName: !Ref DomainName
-      ValidationMethod: DNS
-      DomainValidationOptions:
-        - DomainName: !Ref DomainName
-          ValidationDomain: !Ref DomainName
-
-  # DNS Update
-  ALBDNSAliasRecord:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      HostedZoneId: !Ref HostedZoneId
-      Name: !Ref DomainName
-      Type: A
-      AliasTarget:
-        HostedZoneId: !GetAtt ALB.CanonicalHostedZoneID
-        DNSName: !GetAtt ALB.DNSName
-        EvaluateTargetHealth: false
-
-Outputs:
-  ALBDNSName:
-    Description: "DNS Name of the ALB"
-    Value: !GetAtt ALB.DNSName
-
-Parameters:
-  DomainName:
-    Type: String
-    Description: "The domain name for which the SSL certificate will be issued."
-  HostedZoneId:
-    Type: String
-    Description: "The ID of the Hosted Zone in Route 53 that will be used for the DNS records."
+          sudo yum install certbot -y
