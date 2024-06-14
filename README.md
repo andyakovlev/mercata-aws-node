@@ -11,6 +11,7 @@
     a. Use `mercata-ec2-instance.yml` template from step 3.
 5. Update your DNS A record with the EC2 instances public IP
 6. **Back in AWS, connect to the instance to finish installation.** Go to **EC2** > Instances.
+
     a. Click on the Instance ID of the new node and connect to the instance.
 7. **Install the node.**
     a. In the terminal enter command `sudo systemctl is-active docker` , if it returns `active` the **CloudFormation** script has worked and has set up the prerequisites to deploy your node! 
