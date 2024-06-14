@@ -9,7 +9,7 @@
 4. Download [EC2 Strato Node Template File](https://github.com/andyakovlev/mercata-aws-node/blob/main/mercata-ec2-instance.yml) `mercata-ec2-instance.yml` from GitHub.
 5. **In AWS Set up your EC2.** Go to **CloudFormation** and click **[ Create stack ]**.
     1. Use `mercata-ec2-instance.yml` template from step 3.
-6. Update your DNS A record with the EC2 instances public IP
+6. Update your DNS A record with your new EC2 instance's public IP.
 7. **Back in AWS, connect to the instance to finish installation.** Go to **EC2** > Instances.
     1. Click on the Instance ID of the new node and connect to the instance.
 8. **Install the node.**

@@ -37,6 +37,9 @@ NODE_HOST="$DOMAIN_NAME" \
   SENDGRID_API_KEY="$SENDGRID_API_KEY" \
   ADMIN_EMAIL="$ADMIN_EMAIL" \
   ssl=true \
+  accountNonceLimit=2000 \
+  creatorForkBlockNumber=6200 \
+  BASE_CODE_COLLECTION=d979d67877db869f18283e93ea4bf2d256df92d2 \
   ./strato
 EOF
 
