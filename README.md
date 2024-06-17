@@ -22,3 +22,7 @@
 ## Notes
 
 - Run `sudo bash /tmp/mercata-aws-node/update.sh` to clone latest git version of this
+
+- To access strato node `cd  /datadrive/strato-getting-started/` `sudo ./strato --help`
+
+- To troubleshoot deployment run `sudo docker ps`
