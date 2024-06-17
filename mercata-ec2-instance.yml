@@ -9,6 +9,9 @@ Resources:
       CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-VPC"
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -18,20 +21,29 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-InternetGateway"
 
-  Subnet1:
+  Subnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.1.0/24
       AvailabilityZone: !Select [0, !GetAZs '']
       MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-Subnet"
 
   # Routing setup
   RouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-RouteTable"
 
   Route:
     Type: AWS::EC2::Route
@@ -43,7 +55,7 @@ Resources:
   SubnetRouteTableAssociation1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref Subnet1
+      SubnetId: !Ref Subnet
       RouteTableId: !Ref RouteTable
 
   # Security configuration
@@ -77,6 +89,9 @@ Resources:
           FromPort: 30303
           ToPort: 30303
           CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-SecurityGroupEC2"
 
 
   # EC2 instance setup
@@ -85,7 +100,7 @@ Resources:
     Properties: 
       InstanceType: m6a.xlarge
       ImageId: ami-08a0d1e16fc3f61ea
-      SubnetId: !Ref Subnet1
+      SubnetId: !Ref Subnet
       SecurityGroupIds: 
         - !Ref SecurityGroupEC2
       BlockDeviceMappings:
@@ -99,13 +114,13 @@ Resources:
             VolumeType: gp3
       Tags:
         - Key: Name
-          Value: stratomercata-node1
+          Value: !Sub "${AWS::StackName}-EC2Instance"
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
           yum install -y git
           sudo rm -rf /tmp/mercata-aws-node
           git clone https://github.com/andyakovlev/mercata-aws-node /tmp/mercata-aws-node
-          sudo bash /tmp/mercata-aws-node/volume_setup_script.sh install
-          sudo bash /tmp/mercata-aws-node/volume_setup_script.sh mount
+          sudo bash /tmp/mercata-aws-node/volume_setup.sh install
+          sudo bash /tmp/mercata-aws-node/volume_setup.sh mount
           sudo yum install certbot -y

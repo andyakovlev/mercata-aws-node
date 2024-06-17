@@ -1,7 +1,18 @@
 import subprocess
-import sys
+import os
 
 def provision_certificate(domain, email):
+    # Paths where Certbot saves the certificate and key
+    cert_path = f'/etc/letsencrypt/live/{domain}/fullchain.pem'
+    key_path = f'/etc/letsencrypt/live/{domain}/privkey.pem'
+
+    # Check if the certificate and key already exist
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        print("Certificate and key already exist.")
+        print(f"Certificate: {cert_path}")
+        print(f"Key: {key_path}")
+        return
+
     # Prepare the Certbot command to obtain a certificate
     command = [
         'sudo', 'certbot', 'certonly', '--standalone',
@@ -17,10 +28,6 @@ def provision_certificate(domain, email):
     if result.returncode == 0:
         print("Certificate provisioned successfully.")
         print(result.stdout)
-
-        # Paths where Certbot saves the certificate and key
-        cert_path = f'/etc/letsencrypt/live/{domain}/fullchain.pem'
-        key_path = f'/etc/letsencrypt/live/{domain}/privkey.pem'
 
         # Target paths for copying the certificate and key
         target_cert_path = '/datadrive/strato-getting-started/ssl/certs/server.pem'
@@ -42,13 +49,9 @@ def provision_certificate(domain, email):
         print(result.stderr)
 
 if __name__ == "__main__":
-    # Ensure the script is called with the correct number of arguments
-    if len(sys.argv) != 3:
-        print("Usage: sudo python3 script.py <domain> <email>")
-        sys.exit(1)
-    
-    domain = sys.argv[1]
-    email = sys.argv[2]
-    
+    # Prompt the user for domain and email
+    domain = input("Enter the domain: ")
+    email = input("Enter the email address: ")
+
     # Call the function to provision the certificate and copy files
     provision_certificate(domain, email)
