@@ -17,7 +17,7 @@
     1. **Check prerequisites are ready.** In the terminal enter command `sudo systemctl is-active docker` , if it returns `active` the **CloudFormation** script has worked and has set up the prerequisites to deploy your node! 
     2. **Install STRATO.** Type `sudo bash /tmp/mercata-aws-node/strato_setup.sh` . Enter your node’s `domain name`, as well as `CLIENT_ID` and `CLIENT_SECRET` you got from us.
     3. **Install SLL**. Run `sudo python3 /tmp/mercata-aws-node/ssl_setup.py` and enter your `email` and node’s `domain name`.
-    4. **Launch STRATO.** Run `sudo ./strato-run.sh` then launch provided link in browser after the install to verify you are up and running. 
+    4. **Launch STRATO.** Go to launch directory `cd /datadrive/strato-getting-started/` and run `sudo ./strato-run.sh` then launch provided link in browser after the install to verify you are up and running. 
 9. Return to Discord and inform us that your node is running. The elders will vote you in, connecting your node to the mainnet. This will make you eligible for all the benefits and rewards of our [**Validator Program**](https://www.notion.so/STRATO-Validator-Program-21c573d0b294448bb5fd42d4d6e3a3cb?pvs=21).
 
 ## Notes
