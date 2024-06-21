@@ -21,9 +21,6 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
-      Tags:
-        - Key: Name
-          Value: !Sub "${AWS::StackName}-InternetGateway"
 
   Subnet:
     Type: AWS::EC2::Subnet
